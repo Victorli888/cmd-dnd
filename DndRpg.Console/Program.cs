@@ -120,7 +120,7 @@ namespace DndRpg.Console
         /// </summary>
         private static async Task ListCharactersAsync()
         {
-            throw new NotImplementedException()
+            throw new NotImplementedException();
         }
 
         /// <summary>
