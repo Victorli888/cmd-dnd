@@ -1,4 +1,7 @@
-﻿namespace DndRpg.Core;
+﻿using DndRpg.Core.Enums;
+using DndRpg.Core.Models;
+
+namespace DndRpg.Core;
 
 public interface ICharacterCreationService
 {

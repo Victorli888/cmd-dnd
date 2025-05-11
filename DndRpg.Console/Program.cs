@@ -1,26 +1,35 @@
 ﻿using System;
 using System.Threading.Tasks;
 using DndRpg.Core.Interfaces;
+
 using DndRpg.Infrastructure.Clients;
 using DndRpg.Infrastructure.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
+using DndRpg.Console.Modules;
+using DndRpg.Core;
 
 namespace DndRpg.Console
 {
     class Program
     {
+        private static CharacterCreationHandler _characterCreationHandler;
+        private static ICharacterCreationService _characterService;
+
         static async Task Main(string[] args)
         {
             var services = ConfigureServices();
             var serviceProvider = services.BuildServiceProvider();
 
-            var characterService = serviceProvider.GetRequiredService<ICharacterService>();
+            _characterService = serviceProvider.GetRequiredService<ICharacterCreationService>();
             var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
+
+            _characterCreationHandler = new CharacterCreationHandler(_characterService);
 
             try
             {
-                await RunGameAsync(characterService);
+                await RunGameAsync();
             }
             catch (Exception ex)
             {
@@ -43,11 +52,15 @@ namespace DndRpg.Console
                 builder.SetMinimumLevel(LogLevel.Information);
             });
 
-            // Add HttpClient
-            services.AddHttpClient<IDndApiClient, DndApiClient>();
+            // Add HttpClient with configuration
+            services.AddHttpClient<IDndApiClient, DndApiClient>(client =>
+            {
+                client.BaseAddress = new Uri("https://www.dnd5eapi.co/api/");
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+            });
 
             // Add services
-            services.AddScoped<ICharacterService, CharacterService>();
+            services.AddScoped<ICharacterCreationService, CharacterService>();
 
             return services;
         }
@@ -55,8 +68,7 @@ namespace DndRpg.Console
         /// <summary>
         /// Runs the game to get started.
         /// </summary>
-        /// <param name="characterService">The character service.</param>
-        private static async Task RunGameAsync(ICharacterService characterService)
+        private static async Task RunGameAsync()
         {
             System.Console.WriteLine("Welcome to D&D Character Manager!");
             System.Console.WriteLine("--------------------------------");
@@ -77,22 +89,22 @@ namespace DndRpg.Console
                 switch (choice)
                 {
                     case "1":
-                        await CreateCharacterAsync(characterService);
+                        await _characterCreationHandler.CreateCharacterAsync();
                         break;
                     case "2":
-                        await ListCharactersAsync(characterService);
+                        await ListCharactersAsync();
                         break;
                     case "3":
-                        await ViewCharacterDetailsAsync(characterService);
+                        await ViewCharacterDetailsAsync();
                         break;
                     case "4":
-                        await RollAbilityCheckAsync(characterService);
+                        await RollAbilityCheckAsync();
                         break;
                     case "5":
-                        await RollSkillCheckAsync(characterService);
+                        await RollSkillCheckAsync();
                         break;
                     case "6":
-                        await RollSavingThrowAsync(characterService);
+                        await RollSavingThrowAsync();
                         break;
                     case "7":
                         return;
@@ -104,155 +116,40 @@ namespace DndRpg.Console
         }
 
         /// <summary>
-        /// Creates a new character.
-        /// </summary>
-        /// <param name="characterService">The character service.</param>
-        private static async Task CreateCharacterAsync(ICharacterService characterService)
-        {
-            System.Console.Write("Enter character name: ");
-            var name = System.Console.ReadLine();
-
-            System.Console.Write("Enter character class: ");
-            var characterClass = System.Console.ReadLine();
-
-            System.Console.Write("Enter character race: ");
-            var race = System.Console.ReadLine();
-
-            try
-            {
-                var character = await characterService.CreateCharacterAsync(name, characterClass, race);
-                System.Console.WriteLine($"Character created successfully! ID: {character.Id}");
-            }
-            catch (Exception ex)
-            {
-                System.Console.WriteLine($"Error creating character: {ex.Message}");
-            }
-        }
-
-        /// <summary>
         /// Lists all characters.
         /// </summary>
-        /// <param name="characterService">The character service.</param>
-        private static async Task ListCharactersAsync(ICharacterService characterService)
+        private static async Task ListCharactersAsync()
         {
-            var characters = await characterService.GetAllCharactersAsync();
-            foreach (var character in characters)
-            {
-                System.Console.WriteLine($"ID: {character.Id}, Name: {character.Name}, Class: {character.Class}, Race: {character.Race}");
-            }
+            throw new NotImplementedException()
         }
 
         /// <summary>
         /// Views the details of a character.
         /// </summary>
-        /// <param name="characterService">The character service.</param>
-        private static async Task ViewCharacterDetailsAsync(ICharacterService characterService)
+        private static async Task ViewCharacterDetailsAsync()
         {
-            System.Console.Write("Enter character ID: ");
-            if (Guid.TryParse(System.Console.ReadLine(), out var id))
-            {
-                var character = await characterService.GetCharacterAsync(id);
-                if (character != null)
-                {
-                    System.Console.WriteLine($"Name: {character.Name}");
-                    System.Console.WriteLine($"Class: {character.Class}");
-                    System.Console.WriteLine($"Race: {character.Race}");
-                    System.Console.WriteLine($"Level: {character.Level}");
-                    System.Console.WriteLine($"Hit Points: {character.CurrentHitPoints}/{character.MaxHitPoints}");
-                }
-                else
-                {
-                    System.Console.WriteLine("Character not found.");
-                }
-            }
-            else
-            {
-                System.Console.WriteLine("Invalid ID format.");
-            }
+            throw new NotImplementedException();
         }
 
-        /// <summary>
-        /// Rolls an ability check for a character.
-        /// </summary>
-        /// <param name="characterService">The character service.</param>
-        private static async Task RollAbilityCheckAsync(ICharacterService characterService)
+        private static async Task RollAbilityCheckAsync()
         {
-            System.Console.Write("Enter character ID: ");
-            if (Guid.TryParse(System.Console.ReadLine(), out var id))
-            {
-                var character = await characterService.GetCharacterAsync(id);
-                if (character != null)
-                {
-                    System.Console.Write("Enter ability (strength, dexterity, constitution, intelligence, wisdom, charisma): ");
-                    var ability = System.Console.ReadLine().ToLower();
-                    var result = await characterService.RollAbilityCheckAsync(character, ability);
-                    System.Console.WriteLine($"Roll result: {result}");
-                }
-                else
-                {
-                    System.Console.WriteLine("Character not found.");
-                }
-            }
-            else
-            {
-                System.Console.WriteLine("Invalid ID format.");
-            }
+            throw new NotImplementedException();
         }
 
         /// <summary>
         /// Rolls a skill check for a character.
         /// </summary>
-        /// <param name="characterService">The character service.</param>
-        private static async Task RollSkillCheckAsync(ICharacterService characterService)
+        private static async Task RollSkillCheckAsync()
         {
-            System.Console.Write("Enter character ID: ");
-            if (Guid.TryParse(System.Console.ReadLine(), out var id))
-            {
-                var character = await characterService.GetCharacterAsync(id);
-                if (character != null)
-                {
-                    System.Console.Write("Enter skill: ");
-                    var skill = System.Console.ReadLine();
-                    var result = await characterService.RollSkillCheckAsync(character, skill);
-                    System.Console.WriteLine($"Roll result: {result}");
-                }
-                else
-                {
-                    System.Console.WriteLine("Character not found.");
-                }
-            }
-            else
-            {
-                System.Console.WriteLine("Invalid ID format.");
-            }
+            throw new NotImplementedException();
         }
 
         /// <summary>
         /// Rolls a saving throw for a character.
         /// </summary>
-        /// <param name="characterService">The character service.</param>
-        private static async Task RollSavingThrowAsync(ICharacterService characterService)
+        private static async Task RollSavingThrowAsync()
         {
-            System.Console.Write("Enter character ID: ");
-            if (Guid.TryParse(System.Console.ReadLine(), out var id))
-            {
-                var character = await characterService.GetCharacterAsync(id);
-                if (character != null)
-                {
-                    System.Console.Write("Enter ability (strength, dexterity, constitution, intelligence, wisdom, charisma): ");
-                    var ability = System.Console.ReadLine().ToLower();
-                    var result = await characterService.RollSavingThrowAsync(character, ability);
-                    System.Console.WriteLine($"Roll result: {result}");
-                }
-                else
-                {
-                    System.Console.WriteLine("Character not found.");
-                }
-            }
-            else
-            {
-                System.Console.WriteLine("Invalid ID format.");
-            }
+           throw new NotImplementedException();
         }
     }
 }

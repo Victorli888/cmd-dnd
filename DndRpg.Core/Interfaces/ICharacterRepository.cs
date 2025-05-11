@@ -1,4 +1,6 @@
-﻿namespace DndRpg.Core.Interfaces;
+﻿using DndRpg.Core.Models;
+
+namespace DndRpg.Core.Interfaces;
 
 public interface ICharacterRepository
 {

@@ -1,6 +1,4 @@
-﻿namespace DndRpg.Core;
-
-public class Class1
+﻿namespace DndRpg.Core.GameStates;
+public class CombatState
 {
-
 }

@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using DndRpg.Core;
 using DndRpg.Core.Interfaces;
 using DndRpg.Core.Models;
+using DndRpg.Core.Enums;
 using Microsoft.Extensions.Logging;
 
 namespace DndRpg.Infrastructure.Services
@@ -10,7 +12,7 @@ namespace DndRpg.Infrastructure.Services
     /// <summary>
     /// Service class for creating and managing characters.
     /// </summary>
-    public class CharacterService : ICharacterService
+    public class CharacterService : ICharacterCreationService
     {
         private readonly IDndApiClient _apiClient;
         private readonly ILogger<CharacterService> _logger;
@@ -21,11 +23,9 @@ namespace DndRpg.Infrastructure.Services
         /// </summary>
         /// <param name="apiClient">The API client to use.</param>
         /// <param name="logger">The logger to use.</param>
-        public CharacterService(IDndApiClient apiClient, ILogger<CharacterService> logger)
+        public CharacterService(IDndApiClient apiClient )
         {
             _apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _characters = new Dictionary<Guid, Character>();
         }
 
         /// <summary>
@@ -34,25 +34,30 @@ namespace DndRpg.Infrastructure.Services
         /// <param name="name">The name of the character.</param>
         /// <param name="characterClass">The class of the character.</param>
         /// <param name="race">The race of the character.</param>
-        public async Task<Character> CreateCharacterAsync(string name, string characterClass, string race)
+        /// <param name="abilityScores">The ability scores of the character.</param>
+        public async Task<Character> CreateCharacterAsync(
+            string name,
+            CharacterClass characterClass,
+            CharacterRace race,
+            Dictionary<AbilityScore, int> abilityScores)
         {
             try
             {
-                // Get class and race details from the API
-                var classDetails = await _apiClient.GetAsync<object>($"classes/{characterClass.ToLower()}");
-                var raceDetails = await _apiClient.GetAsync<object>($"races/{race.ToLower()}");
-
+                // Create new character with unique ID
                 var character = new Character
                 {
+                    Id = Guid.NewGuid(),
                     Name = name,
                     Class = characterClass,
                     Race = race,
-                    Level = 1,
-                    CurrentHitPoints = 10,
+                    AbilityScores = abilityScores,
+                    Level = 1, // Starting at level 1
                     MaxHitPoints = 10
                 };
 
-                _characters.Add(character.Id, character);
+                // TODO: Store the character in memory but later refactor to save persistent data to a database.
+                _characters[character.Id] = character;
+
                 return character;
             }
             catch (Exception ex)
@@ -60,6 +65,12 @@ namespace DndRpg.Infrastructure.Services
                 _logger.LogError(ex, "Error creating character {Name}", name);
                 throw;
             }
+        }
+
+        private int CalculateAbilityModifier(int abilityScore)
+        {
+            // D&D 5e ability modifier formula: (score - 10) / 2, rounded down
+            return (abilityScore - 10) / 2;
         }
 
         /// <summary>
@@ -114,7 +125,7 @@ namespace DndRpg.Infrastructure.Services
         /// <param name="character">The character to roll the ability check for.</param>
         /// <param name="ability">The ability to roll the check for.</param>
         /// <returns>The result of the ability check.</returns>
-        public Task<int> RollAbilityCheckAsync(Character character, string ability)
+        public Task<int> RollAbilityCheckAsync(Character character, AbilityScore ability)
         {
             var random = new Random();
             var roll = random.Next(1, 21); // d20 roll
@@ -142,7 +153,7 @@ namespace DndRpg.Infrastructure.Services
         /// <param name="character">The character to roll the saving throw for.</param>
         /// <param name="ability">The ability to roll the throw for.</param>
         /// <returns>The result of the saving throw.</returns>
-        public Task<int> RollSavingThrowAsync(Character character, string ability)
+        public Task<int> RollSavingThrowAsync(Character character, AbilityScore ability)
         {
             var random = new Random();
             var roll = random.Next(1, 21); // d20 roll

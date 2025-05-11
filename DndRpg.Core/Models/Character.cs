@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using DndRpg.Core.Enums;
 
 namespace DndRpg.Core.Models
 {
@@ -9,11 +10,11 @@ namespace DndRpg.Core.Models
         public Guid Id { get; set; }
         public string Name { get; set; }
         public int Level { get; set; }
-        public string Class { get; set; }
-        public string Race { get; set; }
+        public CharacterClass Class { get; set; }
+        public CharacterRace Race { get; set; }
         public int CurrentHitPoints { get; set; }
         public int MaxHitPoints { get; set; }
-        public Dictionary<string, int> AbilityScores { get; set; }
+        public Dictionary<AbilityScore, int> AbilityScores { get; set; }
         public List<string> Proficiencies { get; set; }
         public List<string> Expertises { get; set; }
         public List<string> Spells { get; set; }
@@ -25,10 +26,11 @@ namespace DndRpg.Core.Models
         public Character()
         {
             Id = Guid.NewGuid();
-            AbilityScores = new Dictionary<string, int>();
+            AbilityScores = new Dictionary<AbilityScore, int>();
             Proficiencies = new List<string>();
             Spells = new List<string>();
             Skills = new Dictionary<string, int>();
+            MaxHitPoints = 0;
         }
 
         /// <summary>
@@ -36,7 +38,7 @@ namespace DndRpg.Core.Models
         /// </summary>
         /// <param name="ability">The ability to get the modifier for.</param>
         /// <returns>The ability modifier.</returns>
-        public int GetAbilityModifier(string ability)
+        public int GetAbilityModifier(AbilityScore ability)
         {
             if (!AbilityScores.ContainsKey(ability))
                 throw new ArgumentException($"Ability {ability} not found!");
