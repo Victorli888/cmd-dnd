@@ -16,16 +16,20 @@ namespace DndRpg.Infrastructure.Services
     {
         private readonly IDndApiClient _apiClient;
         private readonly ILogger<CharacterService> _logger;
-        private readonly Dictionary<Guid, Character> _characters;
+        private readonly ICharacterRepository _characterRepository;
 
         /// <summary>
         /// Initializes a new instance of the CharacterService class.
         /// </summary>
         /// <param name="apiClient">The API client to use.</param>
         /// <param name="logger">The logger to use.</param>
-        public CharacterService(IDndApiClient apiClient )
+        /// <param name="characterRepository">The character repository to use.</param>
+        public CharacterService(
+            IDndApiClient apiClient,
+            ICharacterRepository characterRepository)
         {
             _apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
+            _characterRepository = characterRepository ?? throw new ArgumentNullException(nameof(characterRepository));
         }
 
         /// <summary>
@@ -41,30 +45,18 @@ namespace DndRpg.Infrastructure.Services
             CharacterRace race,
             Dictionary<AbilityScore, int> abilityScores)
         {
-            try
+            var character = new Character
             {
-                // Create new character with unique ID
-                var character = new Character
-                {
-                    Id = Guid.NewGuid(),
-                    Name = name,
-                    Class = characterClass,
-                    Race = race,
-                    AbilityScores = abilityScores,
-                    Level = 1, // Starting at level 1
-                    MaxHitPoints = 10
-                };
+                Id = Guid.NewGuid(),
+                Name = name,
+                Class = characterClass,
+                Race = race,
+                AbilityScores = abilityScores,
+                Level = 1,
+                MaxHitPoints = CalculateStartingHitPoints(characterClass, abilityScores)
+            };
 
-                // TODO: Store the character in memory but later refactor to save persistent data to a database.
-                _characters[character.Id] = character;
-
-                return character;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating character {Name}", name);
-                throw;
-            }
+            return await _characterRepository.CreateAsync(character);
         }
 
         private int CalculateAbilityModifier(int abilityScore)
@@ -80,16 +72,12 @@ namespace DndRpg.Infrastructure.Services
         /// <returns>The character.</returns>
         public Task<Character> GetCharacterAsync(Guid id)
         {
-            if (_characters.TryGetValue(id, out var character))
-            {
-                return Task.FromResult(character);
-            }
-            return Task.FromResult<Character>(null);
+            return _characterRepository.GetByIdAsync(id);
         }
 
         public Task<IEnumerable<Character>> GetAllCharactersAsync()
         {
-            return Task.FromResult<IEnumerable<Character>>(_characters.Values);
+            return _characterRepository.GetAllAsync();
         }
 
         /// <summary>
@@ -102,11 +90,7 @@ namespace DndRpg.Infrastructure.Services
             if (character == null)
                 throw new ArgumentNullException(nameof(character));
 
-            if (!_characters.ContainsKey(character.Id))
-                throw new KeyNotFoundException($"Character with ID {character.Id} not found");
-
-            _characters[character.Id] = character;
-            return Task.FromResult(character);
+            return _characterRepository.UpdateAsync(character);
         }
 
         /// <summary>
@@ -116,7 +100,7 @@ namespace DndRpg.Infrastructure.Services
         /// <returns>True if the character was deleted, false otherwise.</returns>
         public Task<bool> DeleteCharacterAsync(Guid id)
         {
-            return Task.FromResult(_characters.Remove(id));
+            return _characterRepository.DeleteAsync(id);
         }
 
         /// <summary>
@@ -159,6 +143,13 @@ namespace DndRpg.Infrastructure.Services
             var roll = random.Next(1, 21); // d20 roll
             var modifier = character.GetAbilityModifier(ability);
             return Task.FromResult(roll + modifier);
+        }
+
+        private int CalculateStartingHitPoints(CharacterClass characterClass, Dictionary<AbilityScore, int> abilityScores)
+        {
+            // Implement the logic to calculate starting hit points based on character class and ability scores
+            // This is a placeholder and should be replaced with the actual implementation
+            return 10; // Placeholder return, actual implementation needed
         }
     }
 } 

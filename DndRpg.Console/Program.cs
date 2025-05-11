@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using DndRpg.Console.Modules;
 using DndRpg.Core;
+using DndRpg.Infrastructure.Data;
 
 namespace DndRpg.Console
 {
@@ -52,12 +53,15 @@ namespace DndRpg.Console
                 builder.SetMinimumLevel(LogLevel.Information);
             });
 
-            // Add HttpClient with configuration
+            // Add HttpClient
             services.AddHttpClient<IDndApiClient, DndApiClient>(client =>
             {
                 client.BaseAddress = new Uri("https://www.dnd5eapi.co/api/");
-                client.DefaultRequestHeaders.Add("Accept", "application/json");
             });
+
+            // Add SQLite
+            var dbPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dnd_characters.db");
+            services.AddSingleton<ICharacterRepository>(new SqliteCharacterRepository($"Data Source={dbPath}"));
 
             // Add services
             services.AddScoped<ICharacterCreationService, CharacterService>();

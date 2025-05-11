@@ -1,12 +1,15 @@
-﻿using DndRpg.Core.Models;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using DndRpg.Core.Models;
 
 namespace DndRpg.Core.Interfaces;
 
 public interface ICharacterRepository
 {
-    Task<Character> CreateCharacterAsync(Character character);
-    Task<Character> GetCharacterAsync(Guid id);
-    Task<IEnumerable<Character>> GetAllCharactersAsync();
-    Task<Character> UpdateCharacterAsync(Character character);
-    Task<bool> DeleteCharacterAsync(Guid id);
+    Task<Character> GetByIdAsync(Guid id);
+    Task<IEnumerable<Character>> GetAllAsync();
+    Task<Character> CreateAsync(Character character);
+    Task<Character> UpdateAsync(Character character);
+    Task<bool> DeleteAsync(Guid id);
 }
