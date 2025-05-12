@@ -7,16 +7,24 @@ using Microsoft.Data.Sqlite;
 using System.Text.Json;
 using DndRpg.Core;
 using DndRpg.Core.Enums;
+using Microsoft.Extensions.Logging;
 
 namespace DndRpg.Infrastructure.Data
 {
     public class SqliteCharacterRepository : ICharacterRepository
     {
         private readonly string _connectionString;
+        private readonly ILogger<SqliteCharacterRepository> _logger;
 
-        public SqliteCharacterRepository(string connectionString)
+        public SqliteCharacterRepository(string connectionString, ILogger<SqliteCharacterRepository> logger)
         {
-            _connectionString = connectionString;
+            _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+            _logger.LogInformation($"Database path: {new SqliteConnectionStringBuilder(connectionString).DataSource}");
+            _logger.LogInformation($"Operating System: {Environment.OSVersion}");
+            _logger.LogInformation($"Current Directory: {Environment.CurrentDirectory}");
+
             InitializeDatabase();
         }
 
@@ -112,7 +120,47 @@ namespace DndRpg.Infrastructure.Data
 
         public async Task<Character> UpdateAsync(Character character)
         {
-            throw new NotImplementedException();
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                await connection.OpenAsync();
+                _logger.LogInformation($"Updating character: {character.Name}");
+
+                var command = connection.CreateCommand();
+                command.CommandText = @"
+                    UPDATE Characters 
+                    SET Name = @Name,
+                        Class = @Class,
+                        Race = @Race,
+                        Level = @Level,
+                        HitPoints = @HitPoints,
+                        AbilityScores = @AbilityScores
+                    WHERE Id = @Id;";
+
+                command.Parameters.AddWithValue("@Id", character.Id.ToString());
+                command.Parameters.AddWithValue("@Name", character.Name);
+                command.Parameters.AddWithValue("@Class", character.Class.ToString());
+                command.Parameters.AddWithValue("@Race", character.Race.ToString());
+                command.Parameters.AddWithValue("@Level", character.Level);
+                command.Parameters.AddWithValue("@HitPoints", character.MaxHitPoints);
+                command.Parameters.AddWithValue("@AbilityScores", JsonSerializer.Serialize(character.AbilityScores));
+
+                var rowsAffected = await command.ExecuteNonQueryAsync();
+                
+                if (rowsAffected == 0)
+                {
+                    _logger.LogWarning($"No character found with Id: {character.Id}");
+                    return null;
+                }
+
+                _logger.LogInformation($"Successfully updated character: {character.Name}");
+                return character;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error updating character: {character.Name}");
+                throw;
+            }
         }
 
         private Character MapCharacterFromReader(SqliteDataReader reader)

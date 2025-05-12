@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using DndRpg.Console.Modules;
 using DndRpg.Core;
 using DndRpg.Infrastructure.Data;
+using Microsoft.Data.Sqlite;
 
 namespace DndRpg.Console
 {
@@ -59,9 +60,29 @@ namespace DndRpg.Console
                 client.BaseAddress = new Uri("https://www.dnd5eapi.co/api/");
             });
 
-            // Add SQLite
-            var dbPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dnd_characters.db");
-            services.AddSingleton<ICharacterRepository>(new SqliteCharacterRepository($"Data Source={dbPath}"));
+            // Add SQLite with better connection string and logging
+            var dbPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                "DndRpg",
+                "dnd_characters.db"
+            );
+            
+            // Ensure directory exists
+            Directory.CreateDirectory(Path.GetDirectoryName(dbPath));
+            
+            var connectionString = new SqliteConnectionStringBuilder
+            {
+                DataSource = dbPath,
+                Mode = SqliteOpenMode.ReadWriteCreate,
+                Cache = SqliteCacheMode.Shared
+            }.ToString();
+
+            services.AddSingleton<ICharacterRepository>(sp => 
+                new SqliteCharacterRepository(
+                    connectionString,
+                    sp.GetRequiredService<ILogger<SqliteCharacterRepository>>()
+                )
+            );
 
             // Add services
             services.AddScoped<ICharacterCreationService, CharacterService>();
