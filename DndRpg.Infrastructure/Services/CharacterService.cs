@@ -53,7 +53,8 @@ namespace DndRpg.Infrastructure.Services
                 Race = race,
                 AbilityScores = abilityScores,
                 Level = 1,
-                MaxHitPoints = CalculateStartingHitPoints(characterClass, abilityScores)
+                MaxHitPoints = CalculateStartingHitPoints(characterClass, abilityScores),
+                CurrentHitPoints = CalculateStartingHitPoints(characterClass, abilityScores)
             };
 
             return await _characterRepository.CreateAsync(character);
