@@ -16,18 +16,16 @@ namespace DndRpg.Console
 {
     class Program
     {
-        private static CharacterCreationHandler _characterCreationHandler;
-        private static ICharacterCreationService _characterService;
+        private static CharacterCreationModule _characterCreation;
 
         static async Task Main(string[] args)
         {
             var services = ConfigureServices();
             var serviceProvider = services.BuildServiceProvider();
 
-            _characterService = serviceProvider.GetRequiredService<ICharacterCreationService>();
-            var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
-
-            _characterCreationHandler = new CharacterCreationHandler(_characterService);
+            _characterCreation = new CharacterCreationModule(
+                serviceProvider.GetRequiredService<ICharacterCreationService>()
+            );
 
             try
             {
@@ -35,6 +33,7 @@ namespace DndRpg.Console
             }
             catch (Exception ex)
             {
+                var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
                 logger.LogError(ex, "An error occurred while running the game");
             }
         }
@@ -102,79 +101,22 @@ namespace DndRpg.Console
             {
                 System.Console.WriteLine("\nWhat would you like to do?");
                 System.Console.WriteLine("1. Create a new character");
-                System.Console.WriteLine("2. List all characters");
-                System.Console.WriteLine("3. View character details");
-                System.Console.WriteLine("4. Roll ability check");
-                System.Console.WriteLine("5. Roll skill check");
-                System.Console.WriteLine("6. Roll saving throw");
-                System.Console.WriteLine("7. Exit");
+                System.Console.WriteLine("2. Exit");
 
                 var choice = System.Console.ReadLine();
 
                 switch (choice)
                 {
                     case "1":
-                        await _characterCreationHandler.CreateCharacterAsync();
+                        await _characterCreation.CreateCharacterAsync();
                         break;
                     case "2":
-                        await ListCharactersAsync();
-                        break;
-                    case "3":
-                        await ViewCharacterDetailsAsync();
-                        break;
-                    case "4":
-                        await RollAbilityCheckAsync();
-                        break;
-                    case "5":
-                        await RollSkillCheckAsync();
-                        break;
-                    case "6":
-                        await RollSavingThrowAsync();
-                        break;
-                    case "7":
                         return;
                     default:
                         System.Console.WriteLine("Invalid choice. Please try again.");
                         break;
                 }
             }
-        }
-
-        /// <summary>
-        /// Lists all characters.
-        /// </summary>
-        private static async Task ListCharactersAsync()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Views the details of a character.
-        /// </summary>
-        private static async Task ViewCharacterDetailsAsync()
-        {
-            throw new NotImplementedException();
-        }
-
-        private static async Task RollAbilityCheckAsync()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Rolls a skill check for a character.
-        /// </summary>
-        private static async Task RollSkillCheckAsync()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Rolls a saving throw for a character.
-        /// </summary>
-        private static async Task RollSavingThrowAsync()
-        {
-           throw new NotImplementedException();
         }
     }
 }

@@ -4,48 +4,50 @@ using DndRpg.Core.Models;
 
 namespace DndRpg.Console.Modules;
 
-public class CharacterCreationHandler
+public class CharacterCreationModule
 {
-    private readonly ICharacterCreationService _characterCreationService;
+    private readonly ICharacterCreationService _characterService;
     private readonly Random _random;
 
-    public CharacterCreationHandler(ICharacterCreationService characterCreationService)
+    public CharacterCreationModule(ICharacterCreationService characterService)
     {
-        _characterCreationService = characterCreationService;
+        _characterService = characterService;
         _random = new Random();
     }
 
-    public async Task CreateCharacterAsync()
+    public async Task<Character> CreateCharacterAsync()
     {
         System.Console.WriteLine("\n=== Character Creation ===");
         
         var name = GetCharacterName();
-        if (string.IsNullOrEmpty(name)) return;
+        if (string.IsNullOrEmpty(name)) return null;
 
-        var selectedRace = GetCharacterRace();
-        var selectedClass = GetCharacterClass();
-        var abilityScores = RollAbilityScores();
+        var race = SetCharacterRace();
+        var characterClass = SetCharacterClass();
+        var abilityScores = RollForRandomAbilityScores();
 
         try
         {
-            var character = await _characterCreationService.CreateCharacterAsync(
-                name: name,
-                characterClass: selectedClass,
-                race: selectedRace,
-                abilityScores: abilityScores
+            var character = await _characterService.CreateCharacterAsync(
+                name,
+                characterClass,
+                race,
+                abilityScores
             );
 
             DisplayCharacterSummary(character);
+            return character;
         }
         catch (Exception ex)
         {
             System.Console.WriteLine($"Error creating character: {ex.Message}");
+            return null;
         }
     }
 
     private string GetCharacterName()
     {
-        System.Console.Write("Enter character name: ");
+        System.Console.Write("\nEnter character name: ");
         var name = System.Console.ReadLine()?.Trim();
         if (string.IsNullOrEmpty(name))
         {
@@ -55,7 +57,7 @@ public class CharacterCreationHandler
         return name;
     }
 
-    private CharacterRace GetCharacterRace()
+    private CharacterRace SetCharacterRace()
     {
         System.Console.WriteLine("\nAvailable Races:");
         var races = Enum.GetNames(typeof(CharacterRace));
@@ -76,7 +78,7 @@ public class CharacterCreationHandler
         }
     }
 
-    private CharacterClass GetCharacterClass()
+    private CharacterClass SetCharacterClass()
     {
         System.Console.WriteLine("\nAvailable Classes:");
         var classes = Enum.GetNames(typeof(CharacterClass));
@@ -97,7 +99,7 @@ public class CharacterCreationHandler
         }
     }
 
-    private Dictionary<AbilityScore, int> RollAbilityScores()
+    private Dictionary<AbilityScore, int> RollForRandomAbilityScores()
     {
         System.Console.WriteLine("\nRolling ability scores...");
         var abilityScores = new Dictionary<AbilityScore, int>();
@@ -105,6 +107,7 @@ public class CharacterCreationHandler
         foreach (AbilityScore ability in Enum.GetValues(typeof(AbilityScore)))
         {
             // Roll 4d6, drop lowest
+            //TODO: Create a Dice Roller Class rather than writing a specific dice roll for each method.
             var rolls = new List<int>();
             for (int i = 0; i < 4; i++)
             {
@@ -123,8 +126,7 @@ public class CharacterCreationHandler
 
     private void DisplayCharacterSummary(Character character)
     {
-        System.Console.WriteLine("\nCharacter created successfully!");
-        System.Console.WriteLine($"ID: {character.Id}");
+        System.Console.WriteLine("\n=== Character Created Successfully! ===");
         System.Console.WriteLine($"Name: {character.Name}");
         System.Console.WriteLine($"Race: {character.Race}");
         System.Console.WriteLine($"Class: {character.Class}");
