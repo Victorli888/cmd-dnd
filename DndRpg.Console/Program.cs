@@ -122,8 +122,6 @@ namespace DndRpg.Console
                 {
                     case "1":
                         await _characterCreation.CreateCharacterAsync();
-                        // Reload characters after creating a new one
-                        await _characterLoading.LoadCharactersAsync();
                         break;
                     case "2":
                         await _characterLoading.LoadCharactersAsync();
