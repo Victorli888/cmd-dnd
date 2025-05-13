@@ -19,13 +19,13 @@ namespace DndRpg.Core.Interfaces
             string name, 
             CharacterClass characterClass, 
             CharacterRace race,
-            Dictionary<AbilityScore, int> abilityScores);
+            Dictionary<Abilities, int> abilityScores);
         Task<Character> GetCharacterAsync(Guid id);
         Task<IEnumerable<Character>> GetAllCharactersAsync();
         Task<Character> UpdateCharacterAsync(Character character);
         Task<bool> DeleteCharacterAsync(Guid id);
-        Task<int> RollAbilityCheckAsync(Character character, AbilityScore ability);
+        Task<int> RollAbilityCheckAsync(Character character, Abilities abilities);
         Task<int> RollSkillCheckAsync(Character character, string skill);
-        Task<int> RollSavingThrowAsync(Character character, AbilityScore ability);
+        Task<int> RollSavingThrowAsync(Character character, Abilities abilities);
     }
 } 

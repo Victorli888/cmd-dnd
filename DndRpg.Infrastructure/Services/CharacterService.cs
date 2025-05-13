@@ -6,6 +6,7 @@ using DndRpg.Core.Interfaces;
 using DndRpg.Core.Models;
 using DndRpg.Core.Enums;
 using Microsoft.Extensions.Logging;
+using System.Linq;
 
 namespace DndRpg.Infrastructure.Services
 {
@@ -43,7 +44,7 @@ namespace DndRpg.Infrastructure.Services
             string name,
             CharacterClass characterClass,
             CharacterRace race,
-            Dictionary<AbilityScore, int> abilityScores)
+            Dictionary<Abilities, int> abilityScores)
         {
             var character = new Character
             {
@@ -51,11 +52,18 @@ namespace DndRpg.Infrastructure.Services
                 Name = name,
                 Class = characterClass,
                 Race = race,
-                AbilityScores = abilityScores,
                 Level = 1,
-                MaxHitPoints = CalculateStartingHitPoints(characterClass, abilityScores),
-                CurrentHitPoints = CalculateStartingHitPoints(characterClass, abilityScores)
+                CurrentHitPoints = 10, // Default starting HP
+                MaxHitPoints = 10
             };
+
+            // Now that character is created, we can use its Id
+            character.AbilityScores = abilityScores.Select(kvp => new AbilityScore
+            {
+                CharacterId = character.Id,
+                Ability = kvp.Key,
+                Score = kvp.Value
+            }).ToList();
 
             return await _characterRepository.CreateAsync(character);
         }
@@ -124,7 +132,7 @@ namespace DndRpg.Infrastructure.Services
         /// <param name="character">The character to roll the skill check for.</param>
         /// <param name="skill">The skill to roll the check for.</param>
         /// <returns>The result of the skill check.</returns>
-        public Task<int> RollSkillCheckAsync(Character character, string skill)
+        public Task<int> RollSkillCheckAsync(Character character, Skill skill)
         {
             var random = new Random();
             var roll = random.Next(1, 21); // d20 roll

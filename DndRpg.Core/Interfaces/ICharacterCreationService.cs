@@ -9,5 +9,5 @@ public interface ICharacterCreationService
         string name, 
         CharacterClass characterClass, 
         CharacterRace race,
-        Dictionary<AbilityScore, int> abilityScores);
+        Dictionary<Abilities, int> abilityScores);
 }

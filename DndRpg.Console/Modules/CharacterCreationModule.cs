@@ -99,12 +99,12 @@ public class CharacterCreationModule
         }
     }
 
-    private Dictionary<AbilityScore, int> RollForRandomAbilityScores()
+    private Dictionary<Abilities, int> RollForRandomAbilityScores()
     {
         System.Console.WriteLine("\nRolling ability scores...");
-        var abilityScores = new Dictionary<AbilityScore, int>();
+        var abilityScores = new Dictionary<Abilities, int>();
         
-        foreach (AbilityScore ability in Enum.GetValues(typeof(AbilityScore)))
+        foreach (Abilities ability in Enum.GetValues(typeof(Abilities)))
         {
             // Roll 4d6, drop lowest
             //TODO: Create a Dice Roller Class rather than writing a specific dice roll for each method.
@@ -133,7 +133,7 @@ public class CharacterCreationModule
         System.Console.WriteLine("\nAbility Scores:");
         foreach (var score in character.AbilityScores)
         {
-            System.Console.WriteLine($"{score.Key}: {score.Value}");
+            System.Console.WriteLine($"{score.Ability}: {score.Score}");
         }
     }
 }

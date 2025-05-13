@@ -14,11 +14,11 @@ namespace DndRpg.Core.Models
         public CharacterRace Race { get; set; }
         public int CurrentHitPoints { get; set; }
         public int MaxHitPoints { get; set; }
-        public Dictionary<AbilityScore, int> AbilityScores { get; set; }
+        public ICollection<AbilityScore> AbilityScores { get; set; } = new List<AbilityScore>();
+        public ICollection<Skill> Skills { get; set; } = new List<Skill>();
         public List<string> Proficiencies { get; set; }
         public List<string> Expertises { get; set; }
         public List<string> Spells { get; set; }
-        public Dictionary<string, int> Skills { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Character"/> class.
@@ -26,10 +26,9 @@ namespace DndRpg.Core.Models
         public Character()
         {
             Id = Guid.NewGuid();
-            AbilityScores = new Dictionary<AbilityScore, int>();
             Proficiencies = new List<string>();
+            Expertises = new List<string>();
             Spells = new List<string>();
-            Skills = new Dictionary<string, int>();
             MaxHitPoints = 0;
         }
 
@@ -40,9 +39,9 @@ namespace DndRpg.Core.Models
         /// <returns>The ability modifier.</returns>
         public int GetAbilityModifier(AbilityScore ability)
         {
-            if (!AbilityScores.ContainsKey(ability))
+            if (!AbilityScores.Contains(ability))
                 throw new ArgumentException($"Ability {ability} not found!");
-            int modifier = (AbilityScores[ability] - 10) / 2;
+            int modifier = (ability.Score - 10) / 2;
             return modifier;
         }
 
@@ -69,12 +68,13 @@ namespace DndRpg.Core.Models
         }
 
         /// <summary>
-        public int GetSkillModifier(string skill)
+        public int GetSkillModifier(Skill skill)
         {
-            if (!Skills.ContainsKey(skill))
+            if (!Skills.Contains(skill))
                 throw new ArgumentException($"Skill {skill} not found");
+            //TODO: Calculate skill modifier
 
-            return Skills[skill];
+            return skill.Value;
         }
     }
 } 

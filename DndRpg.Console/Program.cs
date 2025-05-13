@@ -11,12 +11,14 @@ using DndRpg.Console.Modules;
 using DndRpg.Core;
 using DndRpg.Infrastructure.Data;
 using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 
 namespace DndRpg.Console
 {
     class Program
     {
         private static CharacterCreationModule _characterCreation;
+        private static CharacterLoadingModule _characterLoading;
 
         static async Task Main(string[] args)
         {
@@ -25,6 +27,11 @@ namespace DndRpg.Console
 
             _characterCreation = new CharacterCreationModule(
                 serviceProvider.GetRequiredService<ICharacterCreationService>()
+            );
+
+            _characterLoading = new CharacterLoadingModule(
+                serviceProvider.GetRequiredService<ICharacterRepository>(),
+                serviceProvider.GetRequiredService<ILogger<CharacterLoadingModule>>()
             );
 
             try
@@ -59,7 +66,7 @@ namespace DndRpg.Console
                 client.BaseAddress = new Uri("https://www.dnd5eapi.co/api/");
             });
 
-            // Add SQLite with better connection string and logging
+            // Set up the database path
             var dbPath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
                 "DndRpg",
@@ -69,6 +76,7 @@ namespace DndRpg.Console
             // Ensure directory exists
             Directory.CreateDirectory(Path.GetDirectoryName(dbPath));
             
+            // Create connection string
             var connectionString = new SqliteConnectionStringBuilder
             {
                 DataSource = dbPath,
@@ -76,14 +84,15 @@ namespace DndRpg.Console
                 Cache = SqliteCacheMode.Shared
             }.ToString();
 
-            services.AddSingleton<ICharacterRepository>(sp => 
-                new SqliteCharacterRepository(
-                    connectionString,
-                    sp.GetRequiredService<ILogger<SqliteCharacterRepository>>()
-                )
+            // Register DbContext with the connection string
+            services.AddDbContext<DndDbContext>(options =>
+                options.UseSqlite(connectionString)
             );
 
-            // Add services
+            // Register the repository (it will get the DbContext through DI)
+            services.AddScoped<ICharacterRepository, SqliteCharacterRepository>();
+
+            // Add other services
             services.AddScoped<ICharacterCreationService, CharacterService>();
 
             return services;
@@ -97,11 +106,15 @@ namespace DndRpg.Console
             System.Console.WriteLine("Welcome to D&D Character Manager!");
             System.Console.WriteLine("--------------------------------");
 
+            // Load existing characters
+            await _characterLoading.LoadCharactersAsync();
+
             while (true)
             {
                 System.Console.WriteLine("\nWhat would you like to do?");
                 System.Console.WriteLine("1. Create a new character");
-                System.Console.WriteLine("2. Exit");
+                System.Console.WriteLine("2. View all characters");
+                System.Console.WriteLine("3. Exit");
 
                 var choice = System.Console.ReadLine();
 
@@ -109,8 +122,13 @@ namespace DndRpg.Console
                 {
                     case "1":
                         await _characterCreation.CreateCharacterAsync();
+                        // Reload characters after creating a new one
+                        await _characterLoading.LoadCharactersAsync();
                         break;
                     case "2":
+                        await _characterLoading.LoadCharactersAsync();
+                        break;
+                    case "3":
                         return;
                     default:
                         System.Console.WriteLine("Invalid choice. Please try again.");
