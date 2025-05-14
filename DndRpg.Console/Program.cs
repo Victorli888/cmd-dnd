@@ -12,6 +12,8 @@ using DndRpg.Core;
 using DndRpg.Infrastructure.Data;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
+using Serilog.Events;
 
 namespace DndRpg.Console
 {
@@ -53,11 +55,44 @@ namespace DndRpg.Console
         {
             var services = new ServiceCollection();
 
-            // Add logging
+            // Set up the log directory
+            var logDirectory = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                "DndRpg",
+                "logs"
+            );
+            
+            Directory.CreateDirectory(logDirectory);
+
+            // Configure Serilog
+            var logger = new LoggerConfiguration()
+                .MinimumLevel.Information()
+                // Console sink for application logs only
+                .WriteTo.Console(
+                    outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}",
+                    restrictedToMinimumLevel: LogEventLevel.Information
+                )
+                // File sink for EF Core logs
+                .WriteTo.File(
+                    path: Path.Combine(logDirectory, "ef-core-.log"),
+                    rollingInterval: RollingInterval.Day,
+                    outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}",
+                    restrictedToMinimumLevel: LogEventLevel.Information
+                )
+                // Filter out EF Core logs from console
+                .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
+                .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database", LogEventLevel.Warning)
+                .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
+                .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Query", LogEventLevel.Warning)
+                .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Infrastructure", LogEventLevel.Warning)
+                .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Update", LogEventLevel.Warning)
+                .CreateLogger();
+
+            // Add logging to services
             services.AddLogging(builder =>
             {
-                builder.AddConsole();
-                builder.SetMinimumLevel(LogLevel.Information);
+                builder.ClearProviders();
+                builder.AddSerilog(logger);
             });
 
             // Add HttpClient
