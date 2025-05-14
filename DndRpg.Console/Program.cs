@@ -12,6 +12,8 @@ using DndRpg.Core;
 using DndRpg.Infrastructure.Data;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
+using Serilog.Events;
 
 namespace DndRpg.Console
 {
@@ -53,11 +55,38 @@ namespace DndRpg.Console
         {
             var services = new ServiceCollection();
 
-            // Add logging
+            // Configure Serilog
+            var logger = new LoggerConfiguration()
+                .MinimumLevel.Information()
+                // Console sink for application logs
+                .WriteTo.Console(
+                    outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}",
+                    restrictedToMinimumLevel: LogEventLevel.Information
+                )
+                // File sink for EF Core logs
+                .WriteTo.File(
+                    path: Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                        "DndRpg",
+                        "logs",
+                        "ef-core-.log"
+                    ),
+                    rollingInterval: RollingInterval.Day,
+                    outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}",
+                    restrictedToMinimumLevel: LogEventLevel.Information
+                )
+                .CreateLogger();
+
+            // Add logging to services
             services.AddLogging(builder =>
             {
-                builder.AddConsole();
-                builder.SetMinimumLevel(LogLevel.Information);
+                builder.ClearProviders();
+                builder.AddSerilog(logger);
+                
+                // Filter console output to exclude EF Core logs
+                builder.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
+                builder.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Warning);
+                builder.AddFilter("Microsoft.EntityFrameworkCore.Query", LogLevel.Warning);
             });
 
             // Add HttpClient
