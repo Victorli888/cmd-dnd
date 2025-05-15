@@ -1,6 +1,8 @@
 ﻿using DndRpg.Core;
 using DndRpg.Core.Enums;
 using DndRpg.Core.Models;
+using Spectre.Console;
+using Spectre.Console.Rendering;
 
 namespace DndRpg.Console.Modules;
 
@@ -8,6 +10,7 @@ public class CharacterCreationModule
 {
     private readonly ICharacterCreationService _characterService;
     private readonly Random _random;
+    private const int POINT_BUY_POINTS = 27;
 
     public CharacterCreationModule(ICharacterCreationService characterService)
     {
@@ -24,7 +27,7 @@ public class CharacterCreationModule
 
         var race = SetCharacterRace();
         var characterClass = SetCharacterClass();
-        var abilityScores = RollForRandomAbilityScores();
+        var abilityScores = PointBuyAbilityScores();
 
         try
         {
@@ -122,6 +125,123 @@ public class CharacterCreationModule
         }
 
         return abilityScores;
+    }
+
+    private Dictionary<Abilities, int> PointBuyAbilityScores()
+    {
+        var abilityScores = new Dictionary<Abilities, int>();
+        var remainingPoints = POINT_BUY_POINTS;
+
+        // Initialize all abilities with 8 (minimum score)
+        foreach (Abilities ability in Enum.GetValues(typeof(Abilities)))
+        {
+            abilityScores[ability] = 8;
+        }
+
+        AnsiConsole.Clear();
+        AnsiConsole.MarkupLine("[bold blue]=== Point Buy Ability Scores ===[/]");
+        AnsiConsole.MarkupLine($"You have [bold green]{POINT_BUY_POINTS}[/] points to spend.");
+
+        // Create a table for the point cost reference
+        var costTable = new Table()
+            .Border(TableBorder.Rounded)
+            .AddColumn("Score")
+            .AddColumn("Cost");
+
+        for (int score = 8; score <= 15; score++)
+        {
+            costTable.AddRow(
+                score.ToString(),
+                GetPointCost(score).ToString()
+            );
+        }
+
+        AnsiConsole.Write(costTable);
+        AnsiConsole.WriteLine();
+
+        while (remainingPoints > 0)
+        {
+            // Create the ability scores table
+            var abilityTable = new Table()
+                .Border(TableBorder.Rounded)
+                .AddColumn("Ability")
+                .AddColumn("Score")
+                .AddColumn("Modifier")
+                .AddColumn("Cost");
+
+            // Populate the table
+            foreach (var (abil, score) in abilityScores)
+            {
+                var modifier = (score - 10) / 2;
+                var scoreCost = GetPointCost(score);
+                abilityTable.AddRow(
+                    abil.ToString(),
+                    score.ToString(),
+                    $"{modifier:+#;-#;0}",
+                    scoreCost.ToString()
+                );
+            }
+            abilityTable.AddRow(
+                "Remaining Points",
+                remainingPoints.ToString(),
+                "",
+                ""
+            );
+
+            // Display the current state
+            AnsiConsole.Write(abilityTable);
+            AnsiConsole.WriteLine();
+
+            // Get user input
+            var selectedAbility = AnsiConsole.Prompt(
+                new SelectionPrompt<Abilities>()
+                    .Title("Select ability to modify:")
+                    .AddChoices(Enum.GetValues<Abilities>())
+            );
+
+            var currentScore = abilityScores[selectedAbility];
+            var newScore = AnsiConsole.Prompt(
+                new TextPrompt<int>($"Enter new score for {selectedAbility} (8-15):")
+                    .DefaultValue(currentScore)
+                    .ValidationErrorMessage("[red]Invalid score! Must be between 8 and 15.[/]")
+                    .Validate(proposedScore =>
+                    {
+                        if (proposedScore < 8 || proposedScore > 15)
+                            return ValidationResult.Error("Score must be between 8 and 15");
+                        
+                        var pointCost = GetPointCost(proposedScore) - GetPointCost(currentScore);
+                        if (pointCost > remainingPoints)
+                            return ValidationResult.Error($"Not enough points! Need {pointCost} more points.");
+                        
+                        return ValidationResult.Success();
+                    })
+            );
+
+            var pointCost = GetPointCost(newScore) - GetPointCost(currentScore);
+            remainingPoints -= pointCost;
+            abilityScores[selectedAbility] = newScore;
+
+            AnsiConsole.Clear();
+        }
+
+        AnsiConsole.MarkupLine("\n[bold green]Ability scores assigned![/]");
+        return abilityScores;
+    }
+
+    private int GetPointCost(int score)
+    {
+        return score switch
+        {
+            8 => 0,
+            9 => 1,
+            10 => 2,
+            11 => 3,
+            12 => 4,
+            13 => 5,
+            14 => 7,
+            15 => 9,
+            _ => throw new ArgumentException("Invalid score for point buy")
+        };
     }
 
     private void DisplayCharacterSummary(Character character)
