@@ -28,7 +28,9 @@ namespace DndRpg.Console
             var serviceProvider = services.BuildServiceProvider();
 
             _characterCreation = new CharacterCreationModule(
-                serviceProvider.GetRequiredService<ICharacterCreationService>()
+                serviceProvider.GetRequiredService<ICharacterCreationService>(),
+                serviceProvider.GetRequiredService<PointBuyAbilityScoreGenerator>(),
+                serviceProvider.GetRequiredService<RandomAbilityScoreGenerator>()
             );
 
             _characterLoading = new CharacterLoadingModule(
@@ -129,6 +131,10 @@ namespace DndRpg.Console
 
             // Add other services
             services.AddScoped<ICharacterCreationService, CharacterService>();
+
+            // Register ability score generators with specific names
+            services.AddScoped<PointBuyAbilityScoreGenerator>();
+            services.AddScoped<RandomAbilityScoreGenerator>();
 
             return services;
         }
