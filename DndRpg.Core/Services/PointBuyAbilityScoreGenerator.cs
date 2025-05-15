@@ -115,8 +115,6 @@ public class PointBuyAbilityScoreGenerator : IAbilityScoreGenerator
                     {
                         return false;
                     }
-                    1
-                        
                     var pointCost = GetPointCost(proposedScore) - GetPointCost(currentScore);
                     if (pointCost > remainingPoints)
                     {
