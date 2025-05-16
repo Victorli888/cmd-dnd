@@ -30,7 +30,8 @@ namespace DndRpg.Console
             _characterCreation = new CharacterCreationModule(
                 serviceProvider.GetRequiredService<ICharacterCreationService>(),
                 serviceProvider.GetRequiredService<PointBuyAbilityScoreGenerator>(),
-                serviceProvider.GetRequiredService<RandomAbilityScoreGenerator>()
+                serviceProvider.GetRequiredService<RandomAbilityScoreGenerator>(),
+                serviceProvider.GetRequiredService<IRaceService>()
             );
 
             _characterLoading = new CharacterLoadingModule(
@@ -100,8 +101,15 @@ namespace DndRpg.Console
             // Add HttpClient
             services.AddHttpClient<IDndApiClient, DndApiClient>(client =>
             {
-                client.BaseAddress = new Uri("https://www.dnd5eapi.co/api/");
+                client.BaseAddress = new Uri("https://www.dnd5eapi.co/api/2014/");
             });
+
+            // Register DndApiService
+            services.AddHttpClient<DndApiService>(client =>
+            {
+                client.BaseAddress = new Uri("https://www.dnd5eapi.co/api/2014/");
+            });
+            services.AddScoped<DndApiService>();
 
             // Set up the database path
             var dbPath = Path.Combine(
@@ -131,6 +139,7 @@ namespace DndRpg.Console
 
             // Add other services
             services.AddScoped<ICharacterCreationService, CharacterService>();
+            services.AddScoped<IRaceService, RaceService>();
 
             // Register ability score generators with specific names
             services.AddScoped<PointBuyAbilityScoreGenerator>();

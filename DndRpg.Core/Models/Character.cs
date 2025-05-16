@@ -41,7 +41,7 @@ namespace DndRpg.Core.Models
         {
             if (!AbilityScores.Contains(ability))
                 throw new ArgumentException($"Ability {ability} not found!");
-            int modifier = (ability.Score - 10) / 2;
+            int modifier = (ability.TotalScore - 10) / 2;
             return modifier;
         }
 

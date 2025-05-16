@@ -31,6 +31,12 @@ public class DndDbContext : DbContext
         {
             entity.HasKey(e => new { e.CharacterId, e.Ability });
             
+            entity.Property(e => e.BaseScore)
+                .IsRequired();
+            
+            entity.Property(e => e.BonusScore)
+                .IsRequired();
+            
             entity.HasOne(e => e.Character)
                 .WithMany(c => c.AbilityScores)
                 .HasForeignKey(e => e.CharacterId)

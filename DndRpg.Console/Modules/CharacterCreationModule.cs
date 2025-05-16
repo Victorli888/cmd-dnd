@@ -1,5 +1,6 @@
 ﻿using DndRpg.Core;
 using DndRpg.Core.Enums;
+using DndRpg.Core.Interfaces;
 using DndRpg.Core.Models;
 using Spectre.Console;
 using Spectre.Console.Rendering;
@@ -11,15 +12,18 @@ public class CharacterCreationModule
     private readonly ICharacterCreationService _characterService;
     private readonly IAbilityScoreGenerator _pointBuyGenerator;
     private readonly IAbilityScoreGenerator _randomGenerator;
+    private readonly IRaceService _raceService;
 
     public CharacterCreationModule(
         ICharacterCreationService characterService,
         IAbilityScoreGenerator pointBuyGenerator,
-        IAbilityScoreGenerator randomGenerator)
+        IAbilityScoreGenerator randomGenerator,
+        IRaceService raceService)
     {
         _characterService = characterService;
         _pointBuyGenerator = pointBuyGenerator;
         _randomGenerator = randomGenerator;
+        _raceService = raceService;
     }
 
     public async Task<Character> CreateCharacterAsync()
@@ -31,7 +35,19 @@ public class CharacterCreationModule
 
         var race = SetCharacterRace();
         var characterClass = SetCharacterClass();
+        
+        // Get base ability scores
         var abilityScores = ChooseAbilityScoreMethod();
+        
+        // // Apply racial bonuses
+        // var racialBonuses = await _raceService.GetAbilityBonusesAsync(race);
+        // foreach (var bonus in racialBonuses)
+        // {
+        //     if (abilityScores.ContainsKey(bonus.Key))
+        //     {
+        //         abilityScores[bonus.Key] += bonus.Value;
+        //     }
+        // }
 
         try
         {
@@ -139,7 +155,7 @@ public class CharacterCreationModule
         System.Console.WriteLine("\nAbility Scores:");
         foreach (var score in character.AbilityScores)
         {
-            System.Console.WriteLine($"{score.Ability}: {score.Score}");
+            System.Console.WriteLine($"{score.Ability}: {score.TotalScore}");
         }
     }
 }

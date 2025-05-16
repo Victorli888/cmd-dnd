@@ -81,9 +81,22 @@ namespace DndRpg.Infrastructure.Data
 
         public async Task<Character> UpdateAsync(Character character)
         {
+            _logger.LogInformation("Updating character {Id} with ability scores: {Scores}", 
+                character.Id, 
+                string.Join(", ", character.AbilityScores.Select(a => 
+                    $"{a.Ability}: {a.BaseScore} + {a.BonusScore} = {a.TotalScore}")));
+
             _context.Characters.Update(character);
-            await _context.SaveChangesAsync();
-            return character;
+            var result = await _context.SaveChangesAsync();
+            _logger.LogInformation("Database update completed with {Count} changes", result);
+
+            // Reload the character to ensure we have the latest data
+            var updatedCharacter = await GetByIdAsync(character.Id);
+            _logger.LogInformation("Character reloaded. Current scores: {Scores}", 
+                string.Join(", ", updatedCharacter.AbilityScores.Select(a => 
+                    $"{a.Ability}: {a.BaseScore} + {a.BonusScore} = {a.TotalScore}")));
+            
+            return updatedCharacter;
         }
     }
 }

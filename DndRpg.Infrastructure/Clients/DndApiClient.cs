@@ -12,7 +12,7 @@ namespace DndRpg.Infrastructure.Clients
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<DndApiClient> _logger;
-        private const string BaseUrl = "https://www.dnd5eapi.co/api/";
+        private const string BaseUrl = "https://www.dnd5eapi.co/api/2014/";
 
         public DndApiClient(HttpClient httpClient, ILogger<DndApiClient> logger)
         {
@@ -25,10 +25,16 @@ namespace DndRpg.Infrastructure.Clients
         {
             try
             {
+                _logger.LogInformation("Making request to endpoint: {Endpoint}", endpoint);
                 var response = await _httpClient.GetAsync(endpoint);
                 response.EnsureSuccessStatusCode();
                 var content = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<T>(content);
+                _logger.LogInformation("Received response: {Content}", content);
+                
+                var result = JsonSerializer.Deserialize<T>(content);
+                _logger.LogInformation("Deserialized response to type {Type}: {Result}", 
+                    typeof(T).Name, JsonSerializer.Serialize(result));
+                return result;
             }
             catch (Exception ex)
             {
