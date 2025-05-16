@@ -1,18 +1,29 @@
 ﻿using DndRpg.Core;
 using DndRpg.Core.Enums;
+using DndRpg.Core.Interfaces;
 using DndRpg.Core.Models;
+using Spectre.Console;
+using Spectre.Console.Rendering;
 
 namespace DndRpg.Console.Modules;
 
 public class CharacterCreationModule
 {
     private readonly ICharacterCreationService _characterService;
-    private readonly Random _random;
+    private readonly IAbilityScoreGenerator _pointBuyGenerator;
+    private readonly IAbilityScoreGenerator _randomGenerator;
+    private readonly IRaceService _raceService;
 
-    public CharacterCreationModule(ICharacterCreationService characterService)
+    public CharacterCreationModule(
+        ICharacterCreationService characterService,
+        IAbilityScoreGenerator pointBuyGenerator,
+        IAbilityScoreGenerator randomGenerator,
+        IRaceService raceService)
     {
         _characterService = characterService;
-        _random = new Random();
+        _pointBuyGenerator = pointBuyGenerator;
+        _randomGenerator = randomGenerator;
+        _raceService = raceService;
     }
 
     public async Task<Character> CreateCharacterAsync()
@@ -24,7 +35,19 @@ public class CharacterCreationModule
 
         var race = SetCharacterRace();
         var characterClass = SetCharacterClass();
-        var abilityScores = RollForRandomAbilityScores();
+        
+        // Get base ability scores
+        var abilityScores = ChooseAbilityScoreMethod();
+        
+        // // Apply racial bonuses
+        // var racialBonuses = await _raceService.GetAbilityBonusesAsync(race);
+        // foreach (var bonus in racialBonuses)
+        // {
+        //     if (abilityScores.ContainsKey(bonus.Key))
+        //     {
+        //         abilityScores[bonus.Key] += bonus.Value;
+        //     }
+        // }
 
         try
         {
@@ -99,29 +122,28 @@ public class CharacterCreationModule
         }
     }
 
-    private Dictionary<Abilities, int> RollForRandomAbilityScores()
+    private Dictionary<Abilities, int> ChooseAbilityScoreMethod()
     {
-        System.Console.WriteLine("\nRolling ability scores...");
-        var abilityScores = new Dictionary<Abilities, int>();
-        
-        foreach (Abilities ability in Enum.GetValues(typeof(Abilities)))
-        {
-            // Roll 4d6, drop lowest
-            //TODO: Create a Dice Roller Class rather than writing a specific dice roll for each method.
-            var rolls = new List<int>();
-            for (int i = 0; i < 4; i++)
-            {
-                rolls.Add(_random.Next(1, 7));
-            }
-            rolls.Sort();
-            rolls.RemoveAt(0); // Remove lowest roll
-            int score = rolls.Sum();
-            
-            abilityScores[ability] = score;
-            System.Console.WriteLine($"{ability}: {score}");
-        }
+        System.Console.WriteLine("\nChoose ability score generation method:");
+        System.Console.WriteLine("1. Point Buy (27 points)");
+        System.Console.WriteLine("2. Random Roll (4d6, drop lowest)");
 
-        return abilityScores;
+        while (true)
+        {
+            System.Console.Write("\nSelect method (1-2): ");
+            var input = System.Console.ReadLine();
+
+            switch (input)
+            {
+                case "1":
+                    return _pointBuyGenerator.GenerateAbilityScores();
+                case "2":
+                    return _randomGenerator.GenerateAbilityScores();
+                default:
+                    System.Console.WriteLine("Invalid selection. Please try again.");
+                    break;
+            }
+        }
     }
 
     private void DisplayCharacterSummary(Character character)
@@ -133,7 +155,7 @@ public class CharacterCreationModule
         System.Console.WriteLine("\nAbility Scores:");
         foreach (var score in character.AbilityScores)
         {
-            System.Console.WriteLine($"{score.Ability}: {score.Score}");
+            System.Console.WriteLine($"{score.Ability}: {score.TotalScore}");
         }
     }
 }

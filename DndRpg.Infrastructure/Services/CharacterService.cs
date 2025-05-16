@@ -18,6 +18,7 @@ namespace DndRpg.Infrastructure.Services
         private readonly IDndApiClient _apiClient;
         private readonly ILogger<CharacterService> _logger;
         private readonly ICharacterRepository _characterRepository;
+        private readonly IRaceService _raceService;
 
         /// <summary>
         /// Initializes a new instance of the CharacterService class.
@@ -25,12 +26,17 @@ namespace DndRpg.Infrastructure.Services
         /// <param name="apiClient">The API client to use.</param>
         /// <param name="logger">The logger to use.</param>
         /// <param name="characterRepository">The character repository to use.</param>
+        /// <param name="raceService">The race service to use.</param>
         public CharacterService(
             IDndApiClient apiClient,
-            ICharacterRepository characterRepository)
+            ILogger<CharacterService> logger,
+            ICharacterRepository characterRepository,
+            IRaceService raceService)
         {
             _apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _characterRepository = characterRepository ?? throw new ArgumentNullException(nameof(characterRepository));
+            _raceService = raceService ?? throw new ArgumentNullException(nameof(raceService));
         }
 
         /// <summary>
@@ -39,12 +45,12 @@ namespace DndRpg.Infrastructure.Services
         /// <param name="name">The name of the character.</param>
         /// <param name="characterClass">The class of the character.</param>
         /// <param name="race">The race of the character.</param>
-        /// <param name="abilityScores">The ability scores of the character.</param>
+        /// <param name="baseAbilityScores">The base ability scores of the character.</param>
         public async Task<Character> CreateCharacterAsync(
             string name,
             CharacterClass characterClass,
             CharacterRace race,
-            Dictionary<Abilities, int> abilityScores)
+            Dictionary<Abilities, int> baseAbilityScores)
         {
             var character = new Character
             {
@@ -53,19 +59,60 @@ namespace DndRpg.Infrastructure.Services
                 Class = characterClass,
                 Race = race,
                 Level = 1,
-                CurrentHitPoints = 10, // Default starting HP
+                CurrentHitPoints = 10,
                 MaxHitPoints = 10
             };
 
-            // Now that character is created, we can use its Id
-            character.AbilityScores = abilityScores.Select(kvp => new AbilityScore
+            // Create ability scores with base scores
+            character.AbilityScores = baseAbilityScores.Select(kvp => new AbilityScore
             {
                 CharacterId = character.Id,
                 Ability = kvp.Key,
-                Score = kvp.Value
+                BaseScore = kvp.Value,
+                BonusScore = 0
             }).ToList();
 
-            return await _characterRepository.CreateAsync(character);
+            _logger.LogInformation("Creating character with base scores: {Scores}", 
+                string.Join(", ", character.AbilityScores.Select(a => $"{a.Ability}: {a.BaseScore}")));
+
+            // Save the character with base scores
+            character = await _characterRepository.CreateAsync(character);
+            _logger.LogInformation("Character created with ID: {Id}", character.Id);
+
+            // Get racial bonuses and update
+            var racialBonuses = await _raceService.GetAbilityBonusesAsync(race);
+            _logger.LogInformation("Retrieved racial bonuses: {Bonuses}", 
+                string.Join(", ", racialBonuses.Select(kv => $"{kv.Key}: {kv.Value}")));
+
+            bool anyUpdates = false;
+            foreach (var abilityScore in character.AbilityScores)
+            {
+                if (racialBonuses.TryGetValue(abilityScore.Ability, out int bonus))
+                {
+                    abilityScore.BonusScore = bonus;  // Simply set the bonus value
+                    anyUpdates = true;
+                    _logger.LogInformation("Updated {Ability} bonus score to {Bonus}", 
+                        abilityScore.Ability, bonus);
+                }
+            }
+
+            if (anyUpdates)
+            {
+                _logger.LogInformation("Updating character with new bonus scores");
+                character = await _characterRepository.UpdateAsync(character);
+                
+                // Verify the update
+                var updatedCharacter = await _characterRepository.GetByIdAsync(character.Id);
+                _logger.LogInformation("Character updated. Final scores: {Scores}", 
+                    string.Join(", ", updatedCharacter.AbilityScores.Select(a => 
+                        $"{a.Ability}: {a.BaseScore} + {a.BonusScore} = {a.TotalScore}")));
+            }
+            else
+            {
+                _logger.LogWarning("No bonus scores were updated");
+            }
+
+            return character;
         }
 
         private int CalculateAbilityModifier(int abilityScore)
