@@ -41,10 +41,10 @@ namespace DndRpg.Console
                 .Build();
 
             // Override the log file paths in configuration
-            var logPath = Path.Combine(baseDirectory, "logs", "log-.txt");
-            var efCoreLogPath = Path.Combine(baseDirectory, "logs", "ef-core-.log");
+            var logPath = Path.Combine(baseDirectory, "logs", "applog-.txt");
+            var dbLogPath = Path.Combine(baseDirectory, "logs", "db-.log");
             configuration["Serilog:WriteTo:1:Args:path"] = logPath;
-            configuration["Serilog:WriteTo:2:Args:configureLogger:WriteTo:0:Args:path"] = efCoreLogPath;
+            configuration["Serilog:WriteTo:2:Args:configureLogger:WriteTo:0:Args:path"] = dbLogPath;
 
             var services = ConfigureServices(configuration);
             var serviceProvider = services.BuildServiceProvider();
