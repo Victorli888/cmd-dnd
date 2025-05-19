@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
 using DndRpg.Core.Interfaces;
-
 using DndRpg.Infrastructure.Clients;
 using DndRpg.Infrastructure.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +13,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Events;
+using Microsoft.Extensions.Configuration;
 
 namespace DndRpg.Console
 {
@@ -24,7 +24,13 @@ namespace DndRpg.Console
 
         static async Task Main(string[] args)
         {
-            var services = ConfigureServices();
+            var configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", optional: true)
+                .Build();
+
+            var services = ConfigureServices(configuration);
             var serviceProvider = services.BuildServiceProvider();
 
             _characterCreation = new CharacterCreationModule(
@@ -54,41 +60,13 @@ namespace DndRpg.Console
         /// Configures the services for the application.
         /// </summary>
         /// <returns>The configured service collection.</returns>
-        private static IServiceCollection ConfigureServices()
+        private static IServiceCollection ConfigureServices(IConfiguration configuration)
         {
             var services = new ServiceCollection();
 
-            // Set up the log directory
-            var logDirectory = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                "DndRpg",
-                "logs"
-            );
-            
-            Directory.CreateDirectory(logDirectory);
-
-            // Configure Serilog
+            // Configure Serilog from appsettings.json
             var logger = new LoggerConfiguration()
-                .MinimumLevel.Information()
-                // Console sink for application logs only
-                .WriteTo.Console(
-                    outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}",
-                    restrictedToMinimumLevel: LogEventLevel.Information
-                )
-                // File sink for EF Core logs
-                .WriteTo.File(
-                    path: Path.Combine(logDirectory, "ef-core-.log"),
-                    rollingInterval: RollingInterval.Day,
-                    outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}",
-                    restrictedToMinimumLevel: LogEventLevel.Information
-                )
-                // Filter out EF Core logs from console
-                .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
-                .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database", LogEventLevel.Warning)
-                .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
-                .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Query", LogEventLevel.Warning)
-                .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Infrastructure", LogEventLevel.Warning)
-                .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Update", LogEventLevel.Warning)
+                .ReadFrom.Configuration(configuration)
                 .CreateLogger();
 
             // Add logging to services
@@ -134,14 +112,14 @@ namespace DndRpg.Console
                 options.UseSqlite(connectionString)
             );
 
-            // Register the repository (it will get the DbContext through DI)
+            // Register the repository
             services.AddScoped<ICharacterRepository, SqliteCharacterRepository>();
 
             // Add other services
             services.AddScoped<ICharacterCreationService, CharacterService>();
             services.AddScoped<IRaceService, RaceService>();
 
-            // Register ability score generators with specific names
+            // Register ability score generators
             services.AddScoped<PointBuyAbilityScoreGenerator>();
             services.AddScoped<RandomAbilityScoreGenerator>();
 
