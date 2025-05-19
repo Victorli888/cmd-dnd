@@ -24,11 +24,25 @@ namespace DndRpg.Console
 
         static async Task Main(string[] args)
         {
+            // Set up the base directory for logs and database
+            var baseDirectory = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                "DndRpg"
+            );
+            
+            // Ensure directories exist
+            Directory.CreateDirectory(baseDirectory);
+            Directory.CreateDirectory(Path.Combine(baseDirectory, "logs"));
+
             var configuration = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                 .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", optional: true)
                 .Build();
+
+            // Override the log file path in configuration
+            var logPath = Path.Combine(baseDirectory, "logs", "log-.txt");
+            configuration["Serilog:WriteTo:1:Args:path"] = logPath;
 
             var services = ConfigureServices(configuration);
             var serviceProvider = services.BuildServiceProvider();
