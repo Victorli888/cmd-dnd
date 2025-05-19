@@ -39,15 +39,6 @@ public class CharacterCreationModule
         // Get base ability scores
         var abilityScores = ChooseAbilityScoreMethod();
         
-        // // Apply racial bonuses
-        // var racialBonuses = await _raceService.GetAbilityBonusesAsync(race);
-        // foreach (var bonus in racialBonuses)
-        // {
-        //     if (abilityScores.ContainsKey(bonus.Key))
-        //     {
-        //         abilityScores[bonus.Key] += bonus.Value;
-        //     }
-        // }
 
         try
         {
