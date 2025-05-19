@@ -40,9 +40,11 @@ namespace DndRpg.Console
                 .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", optional: true)
                 .Build();
 
-            // Override the log file path in configuration
+            // Override the log file paths in configuration
             var logPath = Path.Combine(baseDirectory, "logs", "log-.txt");
+            var efCoreLogPath = Path.Combine(baseDirectory, "logs", "ef-core-.log");
             configuration["Serilog:WriteTo:1:Args:path"] = logPath;
+            configuration["Serilog:WriteTo:2:Args:configureLogger:WriteTo:0:Args:path"] = efCoreLogPath;
 
             var services = ConfigureServices(configuration);
             var serviceProvider = services.BuildServiceProvider();
